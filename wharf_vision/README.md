@@ -2,21 +2,42 @@
 
 基于YOLOv8的两级检测架构，为数字码头项目提供单帧视觉感知能力。
 
-## 架构设计
+## 📋 目录
+
+- [架构设计](#架构设计)
+- [安装](#安装)
+- [快速开始](#快速开始)
+- [项目结构](#项目结构)
+- [训练模型](#训练模型)
+- [输出格式](#输出格式)
+- [性能优化](#性能优化)
+- [测试](#测试)
+- [文档](#文档)
+- [贡献指南](#贡献指南)
+
+## 🏗️ 架构设计
 
 ```
                     输入视频帧
                          │
                          ▼
-            一级：Global Detection（全图）
+            ┌─────────────────────────────┐
+            │   一级：Global Detection    │
+            │      (YOLOv8s, 640x640)     │
+            └─────────────────────────────┘
                          │
          ┌───────────────┴───────────────┐
          ▼                               ▼
-    Person Crop                    Fire/Smoke Crop
+    ┌──────────┐                   ┌──────────┐
+    │Person Crop│                   │Fire Crop │
+    └──────────┘                   └──────────┘
          │                               │
          ▼                               ▼
-    二级A：Person Attr            二级B：Fire Attr
-    (PPE/军装/烟支)               (火/烟/干扰)
+    ┌─────────────────────┐     ┌─────────────────────┐
+    │  二级A：Person Attr  │     │  二级B：Fire Attr   │
+    │ (YOLOv8n, 320x320)  │     │ (YOLOv8n, 320x320) │
+    │  PPE/军装/烟支检测   │     │   火/烟/干扰检测    │
+    └─────────────────────┘     └─────────────────────┘
 ```
 
 ### 一级模型：Global Detection (YOLOv8s)
@@ -45,17 +66,42 @@
 - `light_interference` - 灯光干扰（降低误报）
 - `welding_interference` - 电焊干扰（降低夜间误报）
 
-## 安装
+## 📦 安装
+
+### 环境要求
+
+- Python >= 3.8
+- PyTorch >= 2.0.0
+- CUDA >= 11.0 (GPU支持，可选)
+
+### 安装步骤
 
 ```bash
 # 克隆项目
+git clone <repository_url>
 cd wharf_vision
+
+# 创建虚拟环境（推荐）
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或
+.\venv\Scripts\activate  # Windows
 
 # 安装依赖
 pip install -r requirements.txt
 ```
 
-## 快速开始
+### GPU支持（可选）
+
+```bash
+# 安装PyTorch with CUDA
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# 安装ONNX Runtime GPU版本
+pip install onnxruntime-gpu
+```
+
+## 🚀 快速开始
 
 ### 1. 单帧图像检测
 
@@ -109,7 +155,68 @@ vis_image = inference.visualize(image, result)
 cv2.imwrite('output.jpg', vis_image)
 ```
 
-## 模型训练
+## 📁 项目结构
+
+```
+wharf_vision/
+├── __init__.py              # 包初始化
+├── inference.py             # 主推理引擎
+│
+├── models/                  # 模型模块
+│   ├── __init__.py
+│   ├── base_detector.py     # 基础检测器基类
+│   ├── global_detector.py   # 一级全局检测器
+│   ├── person_attr_detector.py  # 二级人员属性检测器
+│   └── fire_attr_detector.py    # 二级烟火属性检测器
+│
+├── config/                  # 训练配置文件
+│   ├── global.yaml          # 全局检测配置
+│   ├── person_attr.yaml     # 人员属性配置
+│   └── fire_attr.yaml       # 烟火属性配置
+│
+├── data/                    # 数据集目录
+│   ├── global_dataset.yaml  # 全局检测数据集配置
+│   ├── person_attr_dataset.yaml  # 人员属性数据集配置
+│   ├── fire_attr_dataset.yaml    # 烟火属性数据集配置
+│   ├── global_dataset/      # 全局检测数据集
+│   ├── person_attr_dataset/ # 人员属性数据集
+│   └── fire_attr_dataset/   # 烟火属性数据集
+│
+├── scripts/                 # 训练脚本
+│   ├── train_global.py      # 训练一级模型
+│   ├── train_person_attr.py # 训练人员属性模型
+│   ├── train_fire_attr.py   # 训练烟火属性模型
+│   ├── download_datasets.py  # 数据集下载脚本
+│   ├── create_test_datasets.py   # 创建测试数据集
+│   ├── download_small_real_datasets.py
+│   ├── prepare_datasets_fast.py
+│   └── train_all.py         # 一键训练所有模型
+│
+├── examples/                # 使用示例
+│   ├── demo_image.py        # 单帧图像检测
+│   ├── demo_video.py        # 视频检测
+│   └── demo_camera.py       # 摄像头实时检测
+│
+├── utils/                   # 工具函数
+│   ├── __init__.py
+│   ├── visualization.py     # 可视化工具
+│   └── data_utils.py        # 数据处理工具
+│
+├── tests/                   # 测试目录
+│   ├── __init__.py
+│   ├── test_base_detector.py   # 基础检测器测试
+│   ├── test_detectors.py       # 检测器测试
+│   └── test_inference.py       # 推理引擎测试
+│
+├── docs/                    # 文档目录
+│   ├── API.md               # API文档
+│   └── DEVELOPMENT.md       # 开发指南
+│
+├── requirements.txt         # 依赖列表
+└── README.md               # 项目说明
+```
+
+## 🎓 训练模型
 
 ### 准备数据集
 
@@ -133,55 +240,51 @@ data/
 ### 训练一级模型
 
 ```bash
-python scripts/train_global.py --data config/global.yaml --epochs 80
+python wharf_vision/scripts/train_global.py \
+    --data wharf_vision/config/global.yaml \
+    --epochs 80 \
+    --imgsz 640 \
+    --batch 16
 ```
 
 ### 训练二级人员属性模型
 
 ```bash
-python scripts/train_person_attr.py --data config/person_attr.yaml --epochs 80
+python wharf_vision/scripts/train_person_attr.py \
+    --data wharf_vision/config/person_attr.yaml \
+    --epochs 80 \
+    --imgsz 320
 ```
 
 ### 训练二级烟火属性模型
 
 ```bash
-python scripts/train_fire_attr.py --data config/fire_attr.yaml --epochs 100
+python wharf_vision/scripts/train_fire_attr.py \
+    --data wharf_vision/config/fire_attr.yaml \
+    --epochs 100 \
+    --imgsz 320
 ```
 
-## 项目结构
+### 一键训练所有模型
 
-```
-wharf_vision/
-├── __init__.py              # 包初始化
-├── inference.py             # 主推理引擎
-├── models/                  # 模型模块
-│   ├── __init__.py
-│   ├── base_detector.py     # 基础检测器
-│   ├── global_detector.py   # 一级全局检测器
-│   ├── person_attr_detector.py  # 二级人员属性检测器
-│   └── fire_attr_detector.py    # 二级烟火属性检测器
-├── config/                  # 配置文件
-│   ├── global.yaml
-│   ├── person_attr.yaml
-│   └── fire_attr.yaml
-├── scripts/                 # 训练脚本
-│   ├── train_global.py
-│   ├── train_person_attr.py
-│   └── train_fire_attr.py
-├── examples/                # 使用示例
-│   ├── demo_image.py
-│   ├── demo_video.py
-│   └── demo_camera.py
-├── utils/                   # 工具函数
-│   ├── __init__.py
-│   ├── visualization.py     # 可视化工具
-│   └── data_utils.py        # 数据处理工具
-├── data/                    # 数据集目录
-├── requirements.txt         # 依赖列表
-└── README.md               # 项目说明
+```bash
+python wharf_vision/scripts/train_all.py
 ```
 
-## 输出格式
+### 验证模型
+
+```bash
+# 验证一级模型
+python wharf_vision/scripts/train_global.py --val
+
+# 导出为ONNX
+python wharf_vision/scripts/train_global.py --export onnx
+
+# 导出为TensorRT
+python wharf_vision/scripts/train_global.py --export engine
+```
+
+## 📊 输出格式
 
 ### 单帧检测结果
 
@@ -221,7 +324,7 @@ wharf_vision/
 }
 ```
 
-## 性能优化
+## ⚡ 性能优化
 
 ### 并行推理
 
@@ -246,7 +349,36 @@ python scripts/train_global.py --export onnx
 python scripts/train_global.py --export engine
 ```
 
-## 模块边界
+## 🧪 测试
+
+### 运行所有测试
+
+```bash
+pytest wharf_vision/tests/ -v
+```
+
+### 运行特定测试
+
+```bash
+# 测试推理引擎
+pytest wharf_vision/tests/test_inference.py -v
+
+# 测试检测器
+pytest wharf_vision/tests/test_detectors.py -v
+```
+
+### 生成覆盖率报告
+
+```bash
+pytest wharf_vision/tests/ --cov=wharf_vision --cov-report=html
+```
+
+## 📚 文档
+
+- [API 文档](docs/API.md) - 完整的API参考
+- [开发指南](docs/DEVELOPMENT.md) - 开发规范和技巧
+
+## 🔲 模块边界
 
 本模块**只负责**：
 - ✅ 单帧视觉检测与属性识别
@@ -264,6 +396,26 @@ python scripts/train_global.py --export engine
 
 上述能力由后续模块（Tracking、状态机、ROI系统、规则引擎）组合实现。
 
-## 许可
+## 🤝 贡献指南
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
+
+### 代码规范
+
+- 遵循 PEP 8 标准
+- 使用 4 个空格缩进
+- 所有公共函数需包含文档字符串
+- 运行测试确保通过 (`pytest wharf_vision/tests/ -v`)
+
+## 📄 许可
 
 本项目为数字码头项目专用。
+
+## 🙏 致谢
+
+- [Ultralytics](https://github.com/ultralytics/ultralytics) - YOLOv8框架
+- [COCO Dataset](https://cocodataset.org/) - 人员检测数据集
