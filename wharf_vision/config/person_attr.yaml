@@ -1,0 +1,64 @@
+# 数字码头 - 二级人员属性检测模型配置
+# YOLOv8n - 检测: helmet, reflective_vest, life_jacket, work_clothes, military_uniform, suspected_cigarette
+
+# 数据集路径
+path: ./data/person_attr_dataset
+train: images/train
+val: images/val
+test: images/test
+
+# 类别定义
+names:
+  0: helmet              # 安全帽
+  1: reflective_vest     # 反光衣
+  2: life_jacket         # 救生衣
+  3: work_clothes        # 工作服
+  4: military_uniform    # 军装
+  5: suspected_cigarette # 疑似烟支
+
+# 训练参数
+epochs: 80
+imgsz: 320  # 二级模型使用较小尺寸
+batch: 32   # 小模型可以用更大batch
+
+# 模型选择
+model: yolov8n.pt
+
+# 数据增强（针对人员属性）
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 5.0    # 轻微旋转
+translate: 0.1
+scale: 0.3      # 较小缩放范围
+shear: 2.0      # 轻微剪切
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 0.8     # 略降mosaic
+mixup: 0.1      # 轻微mixup
+copy_paste: 0.0
+
+# 优化器
+optimizer: AdamW  # 小模型用AdamW更好
+lr0: 0.001
+lrf: 0.01
+momentum: 0.9
+weight_decay: 0.0005
+
+# 其他设置
+patience: 50
+save: True
+save_period: 10
+cache: True  # 小数据集建议缓存
+
+# 设备
+device: auto
+
+# 工作线程
+workers: 8
+
+# 特殊说明
+# 1. military_uniform 需要高优先级标注，涉及合规
+# 2. suspected_cigarette 是小目标检测，需要高质量样本
+# 3. 建议每个类别至少500+样本

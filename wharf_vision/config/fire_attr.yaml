@@ -1,0 +1,63 @@
+# 数字码头 - 二级烟火属性检测模型配置
+# YOLOv8n - 检测: fire, smoke, light_interference, welding_interference
+
+# 数据集路径
+path: ./data/fire_attr_dataset
+train: images/train
+val: images/val
+test: images/test
+
+# 类别定义
+names:
+  0: fire                  # 明火
+  1: smoke                 # 烟雾
+  2: light_interference    # 灯光干扰
+  3: welding_interference  # 电焊干扰
+
+# 训练参数
+epochs: 100  # 烟火检测需要更多epoch
+imgsz: 320
+batch: 32
+
+# 模型选择
+model: yolov8n.pt
+
+# 数据增强（针对烟火检测）
+hsv_h: 0.02   # 增强色调变化（模拟不同火光颜色）
+hsv_s: 0.8    # 增强饱和度变化
+hsv_v: 0.5    # 增强亮度变化（模拟昼夜）
+degrees: 0.0  # 烟火通常方向固定，不旋转
+translate: 0.1
+scale: 0.4
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 0.5   # 降低mosaic（烟火场景通常连续）
+mixup: 0.0
+copy_paste: 0.0
+
+# 优化器
+optimizer: AdamW
+lr0: 0.001
+lrf: 0.01
+momentum: 0.9
+weight_decay: 0.0005
+
+# 其他设置
+patience: 50
+save: True
+save_period: 10
+cache: True
+
+# 设备
+device: auto
+
+# 工作线程
+workers: 8
+
+# 特殊说明
+# 1. light_interference 和 welding_interference 用于降低误报
+# 2. 需要收集码头夜间灯光、焊接作业等干扰样本
+# 3. 建议干扰样本数量 >= 真实烟火样本数量
+# 4. 烟雾检测难度大，需要多角度、多距离样本
